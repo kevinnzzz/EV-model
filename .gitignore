@@ -4,7 +4,3 @@ __pycache__/
 *.pyc
 .env
 tests/referensi.json
-# CatBoost model files
-model/cat_0.cbm
-model/cat_1.cbm
-model/cat_2.cbm
