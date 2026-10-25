@@ -39,8 +39,7 @@ def info():
     p = get_predictor()
     return {
         "threshold": p.threshold,
-        "weight_xgb": p.w_xgb,
-        "n_models_per_type": len(p.cat_models),
+        "n_models": len(p.xgb_models),
         "trained_with": p.versions,
     }
 
