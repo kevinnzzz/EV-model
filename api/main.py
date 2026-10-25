@@ -1,5 +1,3 @@
-from contextlib import asynccontextmanager
-
 import pandas as pd
 from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
@@ -11,14 +9,17 @@ from .schemas import BatchIn, InputData, PredictionOut
 state: dict = {}
 
 
-@asynccontextmanager
-async def lifespan(app: FastAPI):
-    state["predictor"] = Predictor()   # model dimuat SEKALI saat server menyala
-    yield
-    state.clear()
+def get_predictor() -> Predictor:
+    """Muat model saat pertama kali dibutuhkan, lalu simpan untuk request berikutnya."""
+    if "predictor" not in state:
+        try:
+            state["predictor"] = Predictor()
+        except Exception as e:
+            raise HTTPException(status_code=500, detail=f"Model gagal dimuat: {e}")
+    return state["predictor"]
 
 
-app = FastAPI(title="EV Prediction API", version="1.0.0", lifespan=lifespan)
+app = FastAPI(title="EV Prediction API", version="1.0.0")
 
 app.add_middleware(
     CORSMiddleware,
@@ -35,7 +36,7 @@ def health():
 
 @app.get("/info")
 def info():
-    p: Predictor = state["predictor"]
+    p = get_predictor()
     return {
         "threshold": p.threshold,
         "weight_xgb": p.w_xgb,
@@ -53,7 +54,7 @@ def _build(p: Predictor, probs, labels):
 
 @app.post("/predict", response_model=PredictionOut)
 def predict(data: InputData):
-    p: Predictor = state["predictor"]
+    p = get_predictor()
     try:
         probs, labels = p.predict(pd.DataFrame([data.model_dump()]))
     except Exception as e:
@@ -63,7 +64,7 @@ def predict(data: InputData):
 
 @app.post("/predict/batch", response_model=list[PredictionOut])
 def predict_batch(batch: BatchIn):
-    p: Predictor = state["predictor"]
+    p = get_predictor()
     try:
         probs, labels = p.predict(pd.DataFrame([i.model_dump() for i in batch.items]))
     except Exception as e:
