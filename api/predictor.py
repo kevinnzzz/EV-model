@@ -7,6 +7,10 @@ import xgboost as xgb
 from .config import MODEL_DIR
 from .preprocessing import make_features
 
+# Daftar file model yang dipakai. Tambahkan nama file lain di sini kalau nanti
+# xgb_0.ubj / xgb_1.ubj dikembalikan ke repo.
+MODEL_FILES = ["xgb_2.ubj"]
+
 
 def koreksi_prior(p: np.ndarray, skala: float) -> np.ndarray:
     """Bagi odds dengan skala bobot kelas. Ini DUGAAN, verifikasi dengan tests/compare.py."""
@@ -28,15 +32,14 @@ class Predictor:
 
         self.feat_xgb = cfg["features"]["xgb"]
         self.scale_xgb = cfg["prior_scale"]["xgb"]
-        # Pakai threshold khusus XGBoost kalau sudah dihitung, kalau belum pakai yang lama
+        # Pakai threshold khusus XGBoost kalau ada, kalau belum pakai yang lama
         self.threshold = cfg.get("threshold_xgb", cfg["threshold"])
         self.versions = cfg.get("versions", {})
 
-        n = cfg["n_seeds"]
         self.xgb_models = []
-        for i in range(n):
+        for nama in MODEL_FILES:
             m = xgb.XGBClassifier()
-            m.load_model(str(MODEL_DIR / f"xgb_{i}.ubj"))
+            m.load_model(str(MODEL_DIR / nama))
             self.xgb_models.append(m)
 
     def predict_proba(self, raw: pd.DataFrame) -> np.ndarray:
